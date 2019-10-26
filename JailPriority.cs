@@ -9,7 +9,7 @@ using System.Xml;
 using System.Text.RegularExpressions;
 using System.Linq;
 [assembly: AssemblyTitle("JailPriority Plugin")]
-[assembly: AssemblyVersion("1.0.0.3")]
+[assembly: AssemblyVersion("1.0.0.5")]
 
 namespace ACT_Plugin
 {
@@ -474,15 +474,23 @@ namespace ACT_Plugin
         List<String> orderPlayers = new List<string>();// list of players matched in logLine
         List<String> order = new List<String>(); // List of TTS Callouts
         List<String> players = new List<String>(); // All players in priority list
-        String regex = ":(.*)?:2B6(B|C):.*?:.*?:"; // regex for jails
+        String regex = ":2B6[BC]:[^:]+:[\dA-F]+:(?<name>[^:]+):"; // regex for jails
         int countMatches = 0;// number of matchups to the regex
         int yourIndex = 0;// player's index in the priority list
         System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
         private void OFormActMain_OnLogLineRead(bool isImport, LogLineEventArgs logInfo)
         {
+            if (isImport)
+            {
+                return;
+            }
+
             var match = Regex.Match(logInfo.logLine, regex, RegexOptions.IgnoreCase);
             if (!match.Success)
+            {
                 return;
+            }
+
             if (stopwatch.ElapsedMilliseconds > 1000)//if elapsed time since 1st matchup > 1 second. reset stopwatch
             {
                 logsTextBox.Text += "\r\n\r\n" + "=======[RESET]=======";
@@ -490,22 +498,30 @@ namespace ACT_Plugin
                 countMatches = 0;
                 orderPlayers.Clear();
             }
+
             logsTextBox.Text += "\r\n" + logInfo.logLine;
             stopwatch.Start();
             for (int i = 0; i < players.Count; i++)
             {
-                if (logInfo.logLine.Contains(players[i]))
+                if (match.Groups["name"].Value.Equals(players[i]))
+                {
                     orderPlayers.Add(players[i]);
+                }
             }
+
             countMatches++;
             int y = 0;
             if (countMatches != 3)
+            {
                 return;
+            }
+            
             if (countMatches != orderPlayers.Count)
             {
                 logsTextBox.Text += "\r\n" + "-[Incorrect name/s in priority list!]-";
                 return;
             }
+
             for (int i = 0; i < players.Count; i++)
             {
                 if (orderPlayers.Contains(players[i]))
